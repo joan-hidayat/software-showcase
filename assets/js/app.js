@@ -353,6 +353,56 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(specModal);
   }
 
+  /**
+   * Katalog paket dari Central SaaS LMD (GET /packages?app_code=...)
+   */
+  async function loadLmdPackages(lmdApi, appCode) {
+    const resp = await fetch(`${lmdApi}/packages?app_code=${encodeURIComponent(appCode)}`);
+    const json = await resp.json();
+    if (!json.success) throw new Error(json.message || `HTTP ${resp.status}`);
+    return json.data.map(p => ({
+      code: p.code,
+      name: p.name,
+      description: p.description || '',
+      price: parseFloat(p.base_price),
+      users: parseInt(p.max_users, 10),
+      billingCycle: p.billing_cycle,
+      futureModules: Number(p.future_module_access) === 1,
+      modules: (p.modules || []).map(m => m.name)
+    }));
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function billingCycleLabel(cycle) {
+    return {
+      monthly: 'bulanan', quarterly: '3 bulan', semi_annual: '6 bulan', annual: 'tahunan', one_time: 'sekali bayar'
+    }[cycle] || cycle;
+  }
+
+  function billingCycleSuffix(cycle) {
+    return { monthly: '/ bln', quarterly: '/ 3 bln', semi_annual: '/ 6 bln', annual: '/ thn', one_time: '' }[cycle] || '';
+  }
+
+  function renderPackageCard(pkg) {
+    const shownModules = pkg.modules.slice(0, 4).map(m => `<li>✓ ${escapeHtml(m)}</li>`).join('');
+    const moreModules = pkg.modules.length > 4 ? `<li>✓ +${pkg.modules.length - 4} modul lainnya</li>` : '';
+    const futureModules = pkg.futureModules ? '<li>✓ Modul baru otomatis didapat</li>' : '';
+    return `
+          <div class="pkg-card" data-code="${escapeHtml(pkg.code)}">
+            <div class="pkg-badge">${escapeHtml(billingCycleLabel(pkg.billingCycle))}</div>
+            <h4>${escapeHtml(pkg.name)}</h4>
+            <div class="pkg-price">Rp ${pkg.price.toLocaleString('id-ID')} <span>${billingCycleSuffix(pkg.billingCycle)}</span></div>
+            <ul class="pkg-features">
+              <li>✓ Maksimal ${pkg.users} User</li>
+              ${shownModules}${moreModules}${futureModules}
+            </ul>
+            <button type="button" class="btn-select-pkg">Pilih Paket</button>
+          </div>`;
+  }
+
     /**
    * Open Installation / Commercial Subscription Modal (Level 8 SaaS Lifecycle)
    */
@@ -365,7 +415,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const port = window.location.port ? ':' + window.location.port : ':8080';
     const lmdHost = `${window.location.protocol}//${currentHost}${port}`;
 
-    let selectedPackage = { code: 'APO_PRO', name: 'Paket Professional', price: 350000, users: 15 };
+    // Paket, harga, dan kuota diambil dari LMD (sumber tunggal), bukan ditulis di Showcase
+    const lmdApi = `${lmdHost}/License-Management-Dashboard/api/index.php`;
+    const appCode = product.lmdAppCode || 'APOTEK';
+    let selectedPackage = null;
+    const paymentState = { method: 'QRIS' };
 
     modalContent.innerHTML = `
       <div class="onboarding-stepper">
@@ -380,48 +434,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <h3 style="font-size: 15px; margin-bottom: 6px; color: #f8fafc;">Pilih Paket Langganan untuk ${product.name}</h3>
         <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Tentukan kapasitas user dan fitur yang sesuai dengan kebutuhan bisnis Anda</p>
 
-        <div class="package-cards-grid">
-          <div class="pkg-card" data-code="APO_BASIC" data-name="Paket Starter" data-price="150000" data-users="3">
-            <div class="pkg-badge">Starter</div>
-            <h4>Paket Basic</h4>
-            <div class="pkg-price">Rp 150.000 <span>/ bln</span></div>
-            <ul class="pkg-features">
-              <li>✓ Maksimal 3 User Kasir</li>
-              <li>✓ Modul POS & Master Obat</li>
-              <li>✓ Laporan Penjualan Standar</li>
-            </ul>
-            <button type="button" class="btn-select-pkg">Pilih Paket</button>
-          </div>
-
-          <div class="pkg-card selected" data-code="APO_PRO" data-name="Paket Professional" data-price="350000" data-users="15">
-            <div class="pkg-badge popular">Paling Laris</div>
-            <h4>Paket Professional</h4>
-            <div class="pkg-price">Rp 350.000 <span>/ bln</span></div>
-            <ul class="pkg-features">
-              <li>✓ Maksimal 15 User Staf</li>
-              <li>✓ Multi-Kasir & Multi-Warehouse</li>
-              <li>✓ Kontrol Expired FEFO / FIFO</li>
-              <li>✓ Dukungan Printer & Scanner</li>
-            </ul>
-            <button type="button" class="btn-select-pkg active">Terpilih</button>
-          </div>
-
-          <div class="pkg-card" data-code="APO_ENT" data-name="Paket Enterprise" data-price="850000" data-users="50">
-            <div class="pkg-badge">Enterprise</div>
-            <h4>Paket Enterprise</h4>
-            <div class="pkg-price">Rp 850.000 <span>/ bln</span></div>
-            <ul class="pkg-features">
-              <li>✓ Hingga 50 User Terkoneksi</li>
-              <li>✓ Multi-Cabang / Jaringan</li>
-              <li>✓ Integrasi BPJS PCare & SatuSehat</li>
-              <li>✓ Dedicated Support 24/7</li>
-            </ul>
-            <button type="button" class="btn-select-pkg">Pilih Paket</button>
-          </div>
+        <div class="package-cards-grid" id="pkg-cards-grid">
+          <div class="pkg-loading">Memuat paket dari Central SaaS LMD...</div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-          <button id="btn-to-step-2" class="btn-action btn-install" style="padding: 10px 24px;">
+          <button id="btn-to-step-2" class="btn-action btn-install" style="padding: 10px 24px;" disabled>
             Lanjutkan ke Data Diri →
           </button>
         </div>
@@ -610,27 +628,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('install-modal-title').textContent = `Berlangganan & Aktivasi Domain: ${product.name}`;
 
-    // Bind Package Selection
-    const pkgCards = modalContent.querySelectorAll('.pkg-card');
-    pkgCards.forEach(card => {
-      card.addEventListener('click', () => {
-        pkgCards.forEach(c => {
-          c.classList.remove('selected');
-          const b = c.querySelector('.btn-select-pkg');
-          if (b) { b.classList.remove('active'); b.textContent = 'Pilih Paket'; }
-        });
-        card.classList.add('selected');
-        const btn = card.querySelector('.btn-select-pkg');
-        if (btn) { btn.classList.add('active'); btn.textContent = 'Terpilih'; }
+    // Load & bind package cards from LMD
+    const pkgGrid = document.getElementById('pkg-cards-grid');
+    const btnToStep2 = document.getElementById('btn-to-step-2');
 
-        selectedPackage = {
-          code: card.dataset.code,
-          name: card.dataset.name,
-          price: parseFloat(card.dataset.price),
-          users: parseInt(card.dataset.users)
-        };
+    const selectPackageCard = (card, pkg) => {
+      pkgGrid.querySelectorAll('.pkg-card').forEach(c => {
+        c.classList.remove('selected');
+        const b = c.querySelector('.btn-select-pkg');
+        if (b) { b.classList.remove('active'); b.textContent = 'Pilih Paket'; }
       });
-    });
+      card.classList.add('selected');
+      const btn = card.querySelector('.btn-select-pkg');
+      if (btn) { btn.classList.add('active'); btn.textContent = 'Terpilih'; }
+      selectedPackage = pkg;
+      btnToStep2.disabled = false;
+    };
+
+    loadLmdPackages(lmdApi, appCode)
+      .then(packages => {
+        if (packages.length === 0) {
+          pkgGrid.innerHTML = '<div class="pkg-loading">Belum ada paket publik untuk aplikasi ini di Central SaaS LMD.</div>';
+          return;
+        }
+        pkgGrid.innerHTML = packages.map(renderPackageCard).join('');
+        const cards = pkgGrid.querySelectorAll('.pkg-card');
+        cards.forEach((card, idx) => card.addEventListener('click', () => selectPackageCard(card, packages[idx])));
+        const defaultIdx = packages.length > 2 ? 1 : 0;
+        selectPackageCard(cards[defaultIdx], packages[defaultIdx]);
+      })
+      .catch(err => {
+        pkgGrid.innerHTML = `<div class="pkg-loading pkg-error">Gagal memuat paket dari Central SaaS LMD (${escapeHtml(err.message)}). Pastikan LMD berjalan, lalu buka ulang jendela ini.</div>`;
+      });
 
     // Step 1 -> 2
     document.getElementById('btn-to-step-2').addEventListener('click', () => {
@@ -660,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tax = Math.round(selectedPackage.price * 0.11);
       const grandTotal = selectedPackage.price + tax;
 
-      document.getElementById('bill-pkg-name').textContent = `${selectedPackage.name} (${selectedPackage.users} User)`;
+      document.getElementById('bill-pkg-name').textContent = `${selectedPackage.name} (${selectedPackage.users} User, ${billingCycleLabel(selectedPackage.billingCycle)})`;
       document.getElementById('bill-pkg-price').textContent = `Rp ${selectedPackage.price.toLocaleString('id-ID')}`;
       document.getElementById('bill-tax').textContent = `Rp ${tax.toLocaleString('id-ID')}`;
       document.getElementById('bill-total').textContent = `Rp ${grandTotal.toLocaleString('id-ID')}`;
@@ -679,6 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.addEventListener('click', () => {
         modalContent.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
+        paymentState.method = opt.dataset.method;
         const qrisBox = document.getElementById('qris-box');
         if (opt.dataset.method === 'QRIS') {
           qrisBox.style.display = 'block';
@@ -712,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const payload = {
-        app_code: 'APOTEK',
+        app_code: appCode,
         package_code: selectedPackage.code,
         customer_name: custName,
         customer_email: custEmail,
@@ -720,11 +750,11 @@ document.addEventListener('DOMContentLoaded', () => {
         store_name: storeName,
         subdomain: subdomain,
         admin_password: adminPassword,
-        payment_method: 'QRIS'
+        payment_method: paymentState.method
       };
 
       try {
-        const orderApiUrl = `${lmdHost}/License-Management-Dashboard/api/licenses/order`;
+        const orderApiUrl = `${lmdApi}/licenses/order`;
         const resp = await fetch(orderApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -752,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Pesanan berhasil dikirim ke Central SaaS! Menunggu persetujuan admin.');
 
         // Start Live Polling for Admin Approval
-        const checkStatusUrl = `${lmdHost}/License-Management-Dashboard/api/licenses/order_status?subscription_no=${order.subscription_no}`;
+        const checkStatusUrl = `${lmdApi}/licenses/order_status?subscription_no=${encodeURIComponent(order.subscription_no)}`;
 
         if (activePollInterval) clearInterval(activePollInterval);
 
@@ -761,13 +791,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkResp = await fetch(checkStatusUrl);
             const statusJson = await checkResp.json();
 
+            if (statusJson.success && statusJson.data && statusJson.data.is_rejected) {
+              clearInterval(activePollInterval);
+              document.getElementById('waiting-screen').innerHTML = `
+                <div style="font-size: 40px; margin-bottom: 10px;">⛔</div>
+                <h3 style="font-size: 18px; font-weight: 800; color: #f87171; margin-bottom: 6px;">Pesanan Ditolak</h3>
+                <p style="font-size: 13px; color: #94a3b8; max-width: 420px; margin: 0 auto;">
+                  Pembayaran untuk <strong>${escapeHtml(order.subscription_no)}</strong> belum dapat dikonfirmasi oleh admin. Silakan hubungi tim kami dengan menyertakan nomor subskripsi ini.
+                </p>`;
+              return;
+            }
+
             if (statusJson.success && statusJson.data && statusJson.data.is_approved) {
               // APPROVED!
               clearInterval(activePollInterval);
               document.getElementById('waiting-screen').classList.add('hidden');
               document.getElementById('approved-screen').classList.remove('hidden');
 
-              const appUrl = statusJson.data.app_url || `${lmdHost}/mini-pos/?tenant=${order.instance_domain}`;
+              const appUrl = statusJson.data.app_url
+                || `${lmdHost}/mini-pos/?tenant=${encodeURIComponent(order.instance_domain)}&lic=${encodeURIComponent(statusJson.data.license_key)}`;
               document.getElementById('final-app-url').textContent = appUrl;
               document.getElementById('final-lic-key').textContent = statusJson.data.license_key;
               const credUserEl = document.getElementById('final-cred-user');
