@@ -482,15 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <small style="color: #64748b; font-size: 11px;">Domain instans ini akan langsung aktif begitu pembayaran disetujui</small>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
-            <div class="form-group-modal">
-              <label>Buat Password Akun Admin</label>
-              <input type="password" id="ob-admin-password" placeholder="Minimal 6 karakter" value="Admin#2026" required>
-            </div>
-            <div class="form-group-modal">
-              <label>Konfirmasi Password</label>
-              <input type="password" id="ob-admin-pass-confirm" placeholder="Ulangi password" value="Admin#2026" required>
-            </div>
+          <div class="form-note-modal">
+            🔐 <strong>Akun admin aplikasi</strong> dibuat sendiri saat Anda pertama kali membuka aplikasi setelah pembayaran disetujui,
+            menggunakan email di atas. Password tidak dikirim lewat halaman ini.
           </div>
 
           <div style="display: flex; justify-content: space-between; margin-top: 24px;">
@@ -597,20 +591,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 18px; max-width: 480px; margin: 0 auto 24px; text-align: left;">
             <div style="font-size: 13px; font-weight: 800; color: #34d399; margin-bottom: 10px; border-bottom: 1px dashed rgba(16, 185, 129, 0.3); padding-bottom: 6px;">
-              🔑 Kredensial Login Administrator Utama Anda:
+              🔑 Akses Aplikasi Anda:
             </div>
             <div style="font-size: 12px; color: #94a3b8; margin-bottom: 2px;">URL Akses Instans:</div>
             <div id="final-app-url" style="font-size: 13px; font-weight: 800; color: #ffffff; word-break: break-all; font-family: var(--font-mono); margin-bottom: 8px;">
               http://localhost:8080/mini-pos/?tenant=...
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
-              <div>
-                <div style="font-size: 11px; color: #94a3b8;">Username (Email):</div>
-                <div id="final-cred-user" style="font-size: 12px; font-weight: 700; color: #f8fafc; font-family: var(--font-mono);">-</div>
-              </div>
-              <div>
-                <div style="font-size: 11px; color: #94a3b8;">Password:</div>
-                <div id="final-cred-pass" style="font-size: 12px; font-weight: 700; color: #34d399; font-family: var(--font-mono);">•••••••• (Sesuai Input)</div>
+            <div style="margin-bottom: 8px;">
+              <div style="font-size: 11px; color: #94a3b8;">Email akun admin:</div>
+              <div id="final-cred-user" style="font-size: 12px; font-weight: 700; color: #f8fafc; font-family: var(--font-mono);">-</div>
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                Saat pertama membuka aplikasi, Anda akan diminta membuat password admin dengan email ini.
+                Setelah itu kasir di perangkat lain cukup membuka alamat toko dan login.
               </div>
             </div>
             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">License Key Resmi:</div>
@@ -731,16 +723,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const storeName = document.getElementById('ob-store-name').value.trim();
       const subdomain = document.getElementById('ob-subdomain').value.trim();
 
-      const adminPassword = document.getElementById('ob-admin-password').value;
-      const adminPassConfirm = document.getElementById('ob-admin-pass-confirm').value;
-
-      if (adminPassword !== adminPassConfirm) {
-        alert('Password dan Konfirmasi Password tidak cocok!');
-        btn.disabled = false;
-        btn.textContent = '✓ Saya Sudah Bayar (Kirim ke LMD)';
-        return;
-      }
-
       const payload = {
         app_code: appCode,
         package_code: selectedPackage.code,
@@ -749,7 +731,6 @@ document.addEventListener('DOMContentLoaded', () => {
         customer_phone: custPhone,
         store_name: storeName,
         subdomain: subdomain,
-        admin_password: adminPassword,
         payment_method: paymentState.method
       };
 

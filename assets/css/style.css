@@ -1579,3 +1579,14 @@ button, input, select {
 
 /* Dipakai wizard berlangganan (langkah 1-4, layar sukses) via classList 'hidden' */
 .hidden { display: none !important; }
+
+.form-note-modal {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
