@@ -10,3 +10,8 @@ Aplikasi web portofolio e-commerce interaktif untuk memamerkan katalog produk so
 ## 📖 Dokumentasi Lengkap
 Panduan detail mengenai arsitektur, cara kerja tombol demo/install, skema data `products.js`, dan petunjuk penggunaan admin dapat dibaca pada:
 👉 [docs/PANDUAN_SHOWCASE.md](docs/PANDUAN_SHOWCASE.md)
+
+## 🧭 Cara Kerja Ekosistem & Log Evaluasi
+Dokumentasi lintas sistem (Showcase ↔ LMD ↔ Aplikasi Client) dan log temuan/perubahan disimpan terpusat di repo LMD:
+- `docs/EKOSISTEM_CARA_KERJA.md`
+- `docs/LOG_EVALUASI.md`

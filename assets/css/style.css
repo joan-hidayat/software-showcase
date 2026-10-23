@@ -1563,3 +1563,30 @@ button, input, select {
   .package-cards-grid { grid-template-columns: 1fr; }
   .onboarding-stepper { flex-wrap: wrap; }
 }
+
+/* Paket dimuat dari Central SaaS LMD */
+.pkg-loading {
+  grid-column: 1 / -1;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+  border: 1px dashed #334155;
+  border-radius: 12px;
+}
+.pkg-loading.pkg-error { color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
+#btn-to-step-2:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Dipakai wizard berlangganan (langkah 1-4, layar sukses) via classList 'hidden' */
+.hidden { display: none !important; }
+
+.form-note-modal {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
