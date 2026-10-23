@@ -366,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
       description: p.description || '',
       price: parseFloat(p.base_price),
       users: parseInt(p.max_users, 10),
+      locations: parseInt(p.max_instances || 1, 10),
       billingCycle: p.billing_cycle,
       futureModules: Number(p.future_module_access) === 1,
       modules: (p.modules || []).map(m => m.name)
@@ -397,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="pkg-price">Rp ${pkg.price.toLocaleString('id-ID')} <span>${billingCycleSuffix(pkg.billingCycle)}</span></div>
             <ul class="pkg-features">
               <li>✓ Maksimal ${pkg.users} User</li>
+              <li>✓ ${pkg.locations > 1 ? `Hingga ${pkg.locations} lokasi / cabang` : '1 lokasi toko'}</li>
               ${shownModules}${moreModules}${futureModules}
             </ul>
             <button type="button" class="btn-select-pkg">Pilih Paket</button>
