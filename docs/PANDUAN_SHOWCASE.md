@@ -362,9 +362,11 @@ Jika customer memilih menggunakan server hosting cloud (contoh: `https://apotek.
 
 ---
 
-## 🛒 10. Implementasi Nyata Level 8: Commercial Onboarding & Instant Provisioning
+## 🛒 10. Alur Berlangganan Mandiri (Self-Service Onboarding)
 
-Sesuai dengan blueprint arsitektur **Level 8**, tombol pada katalog **Software Showcase** tidak lagi mewajibkan pengguna mengunduh dan mengekstrak berkas `.zip` ke smartphone, melainkan menerapkan sistem **Self-Service SaaS Onboarding**:
+> Catatan istilah: di ERD LMD, "Level 8" adalah tahap penerbitan lisensi. Alur di bagian ini adalah **Alur B** pada `docs/EKOSISTEM_CARA_KERJA.md` (repo LMD); kontrak integrasinya ada di `docs/STANDAR_INTEGRASI.md`.
+
+Tombol pada katalog **Software Showcase** tidak lagi mewajibkan pengguna mengunduh dan mengekstrak berkas `.zip` ke smartphone, melainkan menerapkan sistem **Self-Service SaaS Onboarding**:
 
 ```mermaid
 sequenceDiagram

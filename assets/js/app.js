@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
     /**
-   * Open Installation / Commercial Subscription Modal (Level 8 SaaS Lifecycle)
+   * Open Commercial Subscription Modal (Alur B: berlangganan mandiri, lihat STANDAR_INTEGRASI.md di repo LMD)
    */
   function openInstallModal(product) {
     const modalContent = document.getElementById('install-modal-content');
