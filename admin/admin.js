@@ -227,6 +227,7 @@ const admin = {
     document.getElementById('specKeyFeatures').value = (p.specs && p.specs.keyFeatures) ? p.specs.keyFeatures.join('\n') : '';
 
     // Demo & Install
+    document.getElementById('lmdAppCode').value = p.lmdAppCode || '';
     document.getElementById('demoUrl').value = (p.demo && p.demo.url) || '';
     document.getElementById('demoType').value = (p.demo && p.demo.type) || 'direct';
     document.getElementById('installType').value = (p.install && p.install.type) || 'zip_installer';
@@ -282,6 +283,7 @@ const admin = {
       rating: parseFloat(document.getElementById('prodRating').value) || 5.0,
       reviewsCount: 15,
       thumbnail: document.getElementById('prodThumbnail').value.trim(),
+      lmdAppCode: document.getElementById('lmdAppCode').value.trim().toUpperCase() || undefined,
       tagline: document.getElementById('prodTagline').value.trim(),
       description: document.getElementById('prodDescription').value.trim(),
       version: document.getElementById('prodVersion').value.trim(),

@@ -5,6 +5,7 @@
 const PRODUCTS_DATA = [
   {
     "id": "mini-pos-express",
+    "lmdAppCode": "MINIPOS",
     "name": "Mini POS Express (Portable Cloud/LAN)",
     "category": "Retail & F&B",
     "status": "released",
@@ -74,6 +75,7 @@ const PRODUCTS_DATA = [
   },
   {
     "id": "apotek-smart-pos",
+    "lmdAppCode": "APOTEK",
     "name": "Apotek Smart POS & Pharmacy ERP",
     "category": "Healthcare",
     "status": "released",
