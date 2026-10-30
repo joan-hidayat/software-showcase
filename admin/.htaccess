@@ -1,0 +1,4 @@
+# File konfigurasi & CLI Admin Showcase tidak boleh diakses lewat web (T-07)
+<FilesMatch "^(credentials\.local\.php|set-password\.php|auth\.php)$">
+    Require all denied
+</FilesMatch>

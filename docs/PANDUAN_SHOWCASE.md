@@ -191,7 +191,7 @@ c:/xampp/htdocs/software-showcase/
 
 ### 7.1. Akses Masuk
 - **URL Admin:** `http://localhost:8080/software-showcase/admin/`
-- **Password Default:** `nexus2024` (Dapat diubah di [admin.js](file:///c:/xampp/htdocs/software-showcase/admin/admin.js) baris ke-4).
+- **Password:** tidak ada password bawaan. Buat (atau ganti bila lupa) dari server: `php admin/set-password.php`. Hash disimpan di `admin/credentials.local.php` (tidak di-commit). Login diperiksa di server; 5 kali salah → dikunci 15 menit per IP.
 
 ### 7.2. Operasional Tambah & Perbarui Produk
 1. Buka menu **Tambah Produk**.

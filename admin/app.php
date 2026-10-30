@@ -1,3 +1,14 @@
+<?php
+/**
+ * Halaman Admin Showcase, hanya untuk sesi yang sudah login (T-07).
+ */
+require_once __DIR__ . '/auth.php';
+if (!showcase_admin_logged_in()) {
+    header('Location: ./');
+    exit;
+}
+header('Cache-Control: no-store');
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,37 +18,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261031_v1">
 </head>
-<body class="admin-body">
-
-  <!-- LOGIN OVERLAY -->
-  <div id="loginOverlay" class="login-overlay">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="logo-box">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        </div>
-        <h2>Showcase Portal Admin</h2>
-        <p>Akses manajemen katalog portofolio produk software</p>
-      </div>
-      <form id="loginForm" class="login-form">
-        <div class="form-group">
-          <label>Password Admin</label>
-          <input type="password" id="adminPassword" placeholder="Masukkan password..." required autofocus>
-          <span class="hint">Default key: <code>nexus2024</code></span>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Masuk Dashboard</button>
-        <div id="loginError" class="login-error hidden">Password salah! Silakan coba lagi.</div>
-      </form>
-      <div class="login-footer">
-        <a href="../index.html" class="back-link">← Kembali ke Halaman Public Showcase</a>
-      </div>
-    </div>
-  </div>
+<body class="admin-body" data-csrf="<?php echo htmlspecialchars(showcase_admin_csrf(), ENT_QUOTES); ?>">
 
   <!-- MAIN ADMIN APP -->
-  <div id="adminApp" class="admin-app hidden">
+  <div id="adminApp" class="admin-app">
     <!-- SIDEBAR -->
     <aside class="admin-sidebar">
       <div class="sidebar-brand">
@@ -365,6 +351,6 @@
 
   <!-- LOAD SCRIPTS -->
   <script src="../data/products.js"></script>
-  <script src="admin.js"></script>
+  <script src="admin.js?v=20261031_v1"></script>
 </body>
 </html>
