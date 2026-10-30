@@ -1,7 +1,5 @@
 // NEXUS SHOWCASE ADMIN JS
 const ADMIN_STORAGE_KEY = 'nexus_admin_products';
-const ADMIN_AUTH_KEY = 'nexus_admin_session';
-const ADMIN_PASSWORD = 'nexus2024';
 
 const admin = {
   products: [],
@@ -11,38 +9,23 @@ const admin = {
     this.bindEvents();
   },
 
+  // Login diperiksa server (admin/app.php hanya dikirim ke sesi yang sudah login, T-07)
   checkAuth() {
-    const isAuth = sessionStorage.getItem(ADMIN_AUTH_KEY);
-    const loginOverlay = document.getElementById('loginOverlay');
-    const adminApp = document.getElementById('adminApp');
-
-    if (isAuth === 'true') {
-      loginOverlay.classList.add('hidden');
-      adminApp.classList.remove('hidden');
-      this.loadData();
-      this.renderDashboard();
-    } else {
-      loginOverlay.classList.remove('hidden');
-      adminApp.classList.add('hidden');
-    }
-  },
-
-  login(password) {
-    const errorEl = document.getElementById('loginError');
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
-      errorEl.classList.add('hidden');
-      this.checkAuth();
-      this.toast('Login berhasil! Selamat datang Admin.');
-    } else {
-      errorEl.classList.remove('hidden');
-    }
+    this.loadData();
+    this.renderDashboard();
   },
 
   logout() {
-    sessionStorage.removeItem(ADMIN_AUTH_KEY);
-    this.checkAuth();
-    this.toast('Berhasil keluar.');
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = 'index.php?action=logout';
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = document.body.dataset.csrf;
+    form.appendChild(csrf);
+    document.body.appendChild(form);
+    form.submit();
   },
 
   loadData() {
@@ -367,13 +350,6 @@ const admin = {
   },
 
   bindEvents() {
-    // Login
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const pw = document.getElementById('adminPassword').value;
-      this.login(pw);
-    });
-
     // Logout
     document.getElementById('btnLogout').addEventListener('click', () => this.logout());
 

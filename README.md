@@ -5,7 +5,7 @@ Aplikasi web portofolio e-commerce interaktif untuk memamerkan katalog produk so
 ## 🔗 Akses Cepat
 - **Public Showcase:** [http://localhost:8080/software-showcase/](http://localhost:8080/software-showcase/)
 - **Admin Panel:** [http://localhost:8080/software-showcase/admin/](http://localhost:8080/software-showcase/admin/)
-  - *Password Admin Default:* `nexus2024`
+  - Password admin dibuat di server (tidak ada password bawaan): `php admin/set-password.php`
 
 ## 📖 Dokumentasi Lengkap
 Panduan detail mengenai arsitektur, cara kerja tombol demo/install, skema data `products.js`, dan petunjuk penggunaan admin dapat dibaca pada:
