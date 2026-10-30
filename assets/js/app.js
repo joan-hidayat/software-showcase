@@ -205,12 +205,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 Demo
               </button>
 
+              ${product.lmdAppCode ? `
               <button class="btn-action btn-install" id="btn-install-${product.id}" data-id="${product.id}">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Install
-              </button>
+                Berlangganan
+              </button>` : `
+              <button class="btn-action btn-install btn-unavailable" id="btn-install-${product.id}" data-id="${product.id}" disabled
+                title="Produk ini belum terdaftar di Central SaaS LMD">
+                Segera hadir
+              </button>`}
             </div>
           </div>
         </article>
@@ -411,6 +416,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function openInstallModal(product) {
     const modalContent = document.getElementById('install-modal-content');
     if (!modalContent) return;
+    // Standar Integrasi v1: hanya produk yang terdaftar di LMD (lmdAppCode) yang bisa dipesan
+    if (!product.lmdAppCode) {
+      showToast(`${product.name} segera hadir. Produk ini belum bisa dipesan karena belum terdaftar di Central SaaS.`);
+      return;
+    }
 
     // Detect LMD host
     const currentHost = window.location.hostname || 'localhost';
@@ -419,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Paket, harga, dan kuota diambil dari LMD (sumber tunggal), bukan ditulis di Showcase
     const lmdApi = `${lmdHost}/License-Management-Dashboard/api/index.php`;
-    const appCode = product.lmdAppCode || 'APOTEK';
+    const appCode = product.lmdAppCode;
     let selectedPackage = null;
     const paymentState = { method: 'QRIS' };
 
@@ -587,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="approved-screen" class="hidden" style="text-align: center; padding: 20px 10px;">
           <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
           <h3 style="font-size: 20px; font-weight: 800; color: #34d399; margin-bottom: 6px;">Pembayaran Disetujui & Lisensi Aktif!</h3>
-          <p style="font-size: 13px; color: #cbd5e1; max-width: 440px; margin: 0 auto 20px;">
+          <p id="approved-lead" style="font-size: 13px; color: #cbd5e1; max-width: 440px; margin: 0 auto 20px;">
             Domain dan instans software Anda telah berhasil terbentuk di server. Anda dapat langsung membuka dan menggunakan aplikasi sekarang!
           </p>
 
@@ -602,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="margin-bottom: 8px;">
               <div style="font-size: 11px; color: #94a3b8;">Email akun admin:</div>
               <div id="final-cred-user" style="font-size: 12px; font-weight: 700; color: #f8fafc; font-family: var(--font-mono);">-</div>
-              <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+              <div id="final-cred-note" style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
                 Saat pertama membuka aplikasi, Anda akan diminta membuat password admin dengan email ini.
                 Setelah itu kasir di perangkat lain cukup membuka alamat toko dan login.
               </div>
@@ -791,13 +801,23 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('waiting-screen').classList.add('hidden');
               document.getElementById('approved-screen').classList.remove('hidden');
 
-              const appUrl = statusJson.data.app_url
-                || `${lmdHost}/mini-pos/?tenant=${encodeURIComponent(order.instance_domain)}&lic=${encodeURIComponent(statusJson.data.license_key)}`;
-              document.getElementById('final-app-url').textContent = appUrl;
+              // app_url null = aplikasi on-premise: customer memakai license key saat instalasi
+              const appUrl = statusJson.data.app_url;
+              const enterBtn = document.getElementById('btn-enter-app');
               document.getElementById('final-lic-key').textContent = statusJson.data.license_key;
               const credUserEl = document.getElementById('final-cred-user');
               if (credUserEl) credUserEl.textContent = order.customer_email;
-              document.getElementById('btn-enter-app').href = appUrl;
+              if (appUrl) {
+                document.getElementById('final-app-url').textContent = appUrl;
+                enterBtn.href = appUrl;
+              } else {
+                document.getElementById('final-app-url').textContent = 'Dipasang di server Anda (on-premise)';
+                document.getElementById('final-cred-note').textContent =
+                  'Unduh installer dari halaman produk, lalu masukkan license key di bawah ini saat instalasi. Akun admin dibuat di aplikasi setelah instalasi selesai.';
+                enterBtn.classList.add('hidden');
+                document.getElementById('approved-lead').textContent =
+                  'Lisensi Anda sudah aktif. Aplikasi ini dipasang di server Anda sendiri; gunakan license key di bawah saat instalasi.';
+              }
 
               showToast('🎉 Selamat! Lisensi Anda telah di-approve dan aktif!');
             }

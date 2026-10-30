@@ -1590,3 +1590,14 @@ button, input, select {
   background: rgba(56, 189, 248, 0.08);
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
+
+/* Produk yang belum terdaftar di Central SaaS LMD (tanpa lmdAppCode) */
+.btn-install.btn-unavailable,
+.btn-install.btn-unavailable:hover {
+  background: #1e293b;
+  color: #64748b;
+  border-color: #334155;
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
