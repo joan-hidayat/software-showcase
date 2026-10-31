@@ -350,7 +350,7 @@ header('Cache-Control: no-store');
   <div id="toast" class="toast hidden"></div>
 
   <!-- LOAD SCRIPTS -->
-  <script src="../data/products.js"></script>
-  <script src="admin.js?v=20261031_v1"></script>
+  <script src="../data/catalog.php"></script>
+  <script src="admin.js?v=20261031_t31"></script>
 </body>
 </html>

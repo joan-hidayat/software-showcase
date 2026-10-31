@@ -90,3 +90,7 @@ $RECYCLE.BIN/
 ._*
 .Spotlight-V100
 .Trashes
+
+# Katalog hasil Admin Showcase (T-31), disimpan di server, bukan di repo
+data/products.local.json
+data/products.local.json.tmp
