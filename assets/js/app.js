@@ -539,15 +539,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="pay-option" data-method="TRANSFER_BCA">
               <strong>🏦 Transfer Bank BCA</strong>
-              <small style="display: block; color: #94a3b8; font-size: 11px;">No. Rek: 8820-1234-5678</small>
+              <small style="display: block; color: #94a3b8; font-size: 11px;">Virtual Account</small>
             </div>
           </div>
         </div>
 
-        <!-- SIMULASI QRIS -->
-        <div id="qris-box" style="text-align: center; background: white; padding: 14px; border-radius: 12px; margin-top: 14px; max-width: 220px; margin-left: auto; margin-right: auto;">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=NEXUS-SAAS-PAYMENT" alt="QRIS" style="width: 150px; height: 150px; display: block; margin: 0 auto;" />
-          <div style="color: #111827; font-weight: 800; font-size: 12px; margin-top: 6px;">QRIS RESMI CENTRAL SAAS</div>
+        <div class="form-note-modal" style="margin-top: 14px;">
+          💳 Tagihan dibuat di Central SaaS, lalu halaman pembayaran terbuka di tab baru.
+          Setelah pembayaran berhasil, lisensi aktif <strong>otomatis</strong> dan halaman ini menampilkan link aplikasi Anda.
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-top: 24px;">
@@ -555,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ← Kembali
           </button>
           <button type="button" id="btn-confirm-payment" class="btn-action btn-demo" style="padding: 10px 24px; background: linear-gradient(135deg, #10b981, #059669);">
-            ✓ Saya Sudah Bayar (Kirim ke LMD)
+            💳 Buat Tagihan &amp; Bayar
           </button>
         </div>
       </div>
@@ -564,10 +563,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <div id="wizard-step-4" class="wizard-step hidden">
         <div id="waiting-screen" style="text-align: center; padding: 24px 10px;">
           <div class="pulse-ring-loader">⏳</div>
-          <h3 style="font-size: 18px; font-weight: 800; margin: 16px 0 6px;">Menunggu Konfirmasi Pembayaran</h3>
+          <h3 style="font-size: 18px; font-weight: 800; margin: 16px 0 6px;">Menunggu Pembayaran</h3>
           <p style="font-size: 13px; color: #94a3b8; max-width: 400px; margin: 0 auto 16px;">
-            Data pendaftaran dan pesanan lisensi Anda telah tercatat di <strong>Central SaaS LMD</strong>. Status saat ini: <span class="status-pill-pending">PENDING APPROVAL</span>
+            Pesanan Anda tercatat di <strong>Central SaaS LMD</strong>. Status tagihan: <span id="live-pay-status" class="status-pill-pending">BELUM DIBAYAR</span>
           </p>
+          <a id="btn-open-payment" href="#" target="_blank" rel="noopener" class="btn-action btn-install" style="display: inline-flex; padding: 10px 22px; text-decoration: none; margin-bottom: 14px;">
+            💳 Buka Halaman Pembayaran ↗
+          </a>
 
           <div style="background: #0d121f; border: 1px solid #1e293b; border-radius: 10px; padding: 14px; max-width: 440px; margin: 0 auto; text-align: left; font-size: 12px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -589,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <div style="margin-top: 18px; font-size: 12px; color: #06b6d4;">
-            <span class="spinner-small"></span> Menunggu Admin menekan tombol <strong>"Approve"</strong> di Central SaaS LMD...
+            <span class="spinner-small"></span> <span id="live-pay-hint">Selesaikan pembayaran di tab yang terbuka. Halaman ini diperbarui otomatis.</span>
           </div>
         </div>
 
@@ -713,12 +715,6 @@ document.addEventListener('DOMContentLoaded', () => {
         modalContent.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         paymentState.method = opt.dataset.method;
-        const qrisBox = document.getElementById('qris-box');
-        if (opt.dataset.method === 'QRIS') {
-          qrisBox.style.display = 'block';
-        } else {
-          qrisBox.style.display = 'none';
-        }
       });
     });
 
@@ -727,7 +723,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-confirm-payment').addEventListener('click', async () => {
       const btn = document.getElementById('btn-confirm-payment');
       btn.disabled = true;
-      btn.textContent = 'Mendaftarkan ke Central SaaS LMD...';
+      btn.textContent = 'Membuat tagihan di Central SaaS LMD...';
+      // Tab dibuka langsung saat klik (sebelum await) agar tidak diblokir popup blocker; URL diisi setelah tagihan jadi
+      const payWindow = window.open('', '_blank');
 
       const custName = document.getElementById('ob-cust-name').value.trim();
       const custEmail = document.getElementById('ob-cust-email').value.trim();
@@ -760,6 +758,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const order = resData.data;
+        const paymentUrl = order.payment && order.payment.payment_url;
+        const payLink = document.getElementById('btn-open-payment');
+        if (paymentUrl) {
+          payLink.href = paymentUrl;
+          if (payWindow) payWindow.location.href = paymentUrl;
+        } else {
+          // Tanpa payment gateway: pesanan menunggu persetujuan manual admin
+          payLink.classList.add('hidden');
+          if (payWindow) payWindow.close();
+          document.getElementById('live-pay-hint').textContent = 'Menunggu konfirmasi pembayaran oleh admin Central SaaS...';
+        }
 
         // Transition to Step 4 (Waiting for Admin Approval)
         document.getElementById('wizard-step-3').classList.add('hidden');
@@ -772,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('live-pkg-name').textContent = order.package_name;
         document.getElementById('live-domain').textContent = order.instance_domain;
 
-        showToast('Pesanan berhasil dikirim ke Central SaaS! Menunggu persetujuan admin.');
+        showToast(paymentUrl ? 'Tagihan dibuat. Selesaikan pembayaran di tab baru.' : 'Pesanan dikirim ke Central SaaS. Menunggu konfirmasi admin.');
 
         // Start Live Polling for Admin Approval
         const checkStatusUrl = `${lmdApi}/licenses/order_status?subscription_no=${encodeURIComponent(order.subscription_no)}`;
@@ -783,6 +792,8 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const checkResp = await fetch(checkStatusUrl);
             const statusJson = await checkResp.json();
+            const pay = statusJson.success && statusJson.data && statusJson.data.payment;
+            if (pay) updatePaymentStatus(pay);
 
             if (statusJson.success && statusJson.data && statusJson.data.is_rejected) {
               clearInterval(activePollInterval);
@@ -827,11 +838,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2500);
 
       } catch (err) {
+        if (payWindow) payWindow.close();
         alert('Gagal mengirim pesanan: ' + err.message);
         btn.disabled = false;
-        btn.textContent = '✓ Saya Sudah Bayar (Kirim ke LMD)';
+        btn.textContent = '💳 Buat Tagihan & Bayar';
       }
     });
+
+    // Status tagihan dari order_status: gagal/kedaluwarsa → customer diarahkan mencoba lagi di halaman bayar
+    function updatePaymentStatus(pay) {
+      const labels = {
+        pending: ['BELUM DIBAYAR', 'Selesaikan pembayaran di tab yang terbuka. Halaman ini diperbarui otomatis.'],
+        paid: ['LUNAS', 'Pembayaran diterima. Mengaktifkan lisensi...'],
+        failed: ['GAGAL', 'Pembayaran gagal. Buka halaman pembayaran untuk membuat tagihan baru.'],
+        expired: ['KEDALUWARSA', 'Tagihan kedaluwarsa. Buka halaman pembayaran untuk membuat tagihan baru.'],
+        cancelled: ['DIBATALKAN', 'Pesanan sudah diputuskan admin Central SaaS.']
+      };
+      const [label, hint] = labels[pay.status] || labels.pending;
+      document.getElementById('live-pay-status').textContent = label;
+      document.getElementById('live-pay-hint').textContent = hint;
+      if (pay.payment_url) document.getElementById('btn-open-payment').href = pay.payment_url;
+    }
 
     openModal(installModal);
   }

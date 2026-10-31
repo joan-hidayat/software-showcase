@@ -1,5 +1,5 @@
 // NEXUS SHOWCASE ADMIN JS
-const ADMIN_STORAGE_KEY = 'nexus_admin_products';
+// Katalog disimpan di server (admin/save.php → data/products.local.json, T-31) sehingga langsung tampil di halaman publik
 
 const admin = {
   products: [],
@@ -28,34 +28,42 @@ const admin = {
     form.submit();
   },
 
+  // PRODUCTS_DATA dikirim data/catalog.php: katalog admin di server, atau data/products.js bawaan
   loadData() {
-    const saved = localStorage.getItem(ADMIN_STORAGE_KEY);
-    if (saved) {
-      try {
-        this.products = JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse localStorage data', e);
-        this.products = (typeof PRODUCTS_DATA !== 'undefined') ? [...PRODUCTS_DATA] : [];
-      }
-    } else {
-      this.products = (typeof PRODUCTS_DATA !== 'undefined') ? [...PRODUCTS_DATA] : [];
-      this.saveData();
+    this.products = (typeof PRODUCTS_DATA !== 'undefined') ? JSON.parse(JSON.stringify(PRODUCTS_DATA)) : [];
+  },
+
+  async postToServer(url, body) {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.body.dataset.csrf },
+      body: body ? JSON.stringify(body) : '{}'
+    });
+    const json = await resp.json().catch(() => ({ ok: false, message: 'Respons server tidak valid.' }));
+    if (resp.status === 401) window.location.href = 'index.php';
+    if (!json.ok) throw new Error(json.message || 'Gagal menyimpan ke server.');
+    return json;
+  },
+
+  // Mengembalikan true bila tersimpan; bila gagal, data di layar dimuat ulang dari server
+  async saveData() {
+    try {
+      await this.postToServer('save.php', { products: this.products });
+      return true;
+    } catch (e) {
+      alert('Gagal menyimpan katalog ke server: ' + e.message + '\nPerubahan dibatalkan.');
+      window.location.reload();
+      return false;
     }
   },
 
-  saveData() {
-    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(this.products));
-  },
-
-  resetDefault() {
-    if (confirm('Yakin ingin mereset seluruh data ke data bawaan produk.js?')) {
-      if (typeof PRODUCTS_DATA !== 'undefined') {
-        this.products = JSON.parse(JSON.stringify(PRODUCTS_DATA));
-        this.saveData();
-        this.renderDashboard();
-        this.renderProductsTable();
-        this.toast('Data telah direset ke bawaan.');
-      }
+  async resetDefault() {
+    if (!confirm('Kembalikan katalog ke data bawaan repo (data/products.js)? Semua perubahan dari admin akan hilang.')) return;
+    try {
+      await this.postToServer('save.php?action=reset');
+      window.location.reload();
+    } catch (e) {
+      alert('Gagal mereset: ' + e.message);
     }
   },
 
@@ -221,20 +229,20 @@ const admin = {
     this.navigate('add-product');
   },
 
-  deleteProduct(id) {
+  async deleteProduct(id) {
     const p = this.products.find(item => item.id === id);
     if (!p) return;
 
     if (confirm(`Hapus produk "${p.name}" (${p.id}) dari katalog?`)) {
       this.products = this.products.filter(item => item.id !== id);
-      this.saveData();
+      if (!await this.saveData()) return;
       this.renderDashboard();
       this.renderProductsTable();
       this.toast(`Produk "${p.name}" telah dihapus.`);
     }
   },
 
-  saveProductForm(e) {
+  async saveProductForm(e) {
     e.preventDefault();
     const editId = document.getElementById('editProductId').value;
     const isEdit = editId !== '';
@@ -311,7 +319,7 @@ const admin = {
       this.toast(`Produk "${productObj.name}" berhasil ditambahkan!`);
     }
 
-    this.saveData();
+    if (!await this.saveData()) return;
     this.resetForm();
     this.navigate('products');
   },
@@ -336,7 +344,7 @@ const admin = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    this.toast('File products.js berhasil diekspor! Salin ke folder data/products.js');
+    this.toast('products.js diekspor (cadangan). Katalog sudah otomatis tersimpan di server.');
   },
 
   toast(msg) {

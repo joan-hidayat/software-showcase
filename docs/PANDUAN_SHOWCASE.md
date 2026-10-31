@@ -200,10 +200,11 @@ c:/xampp/htdocs/software-showcase/
 4. **Bagian 3 (Demo & Install):** Tentukan URL Live Demo, tipe paket unduhan (ZIP/Git), ukuran file, dan perintah terminal CLI cepat.
 5. Klik **Simpan Produk**.
 
-### 7.3. Sinkronisasi Data Permanen (Ekspor `products.js`)
-- Seluruh perubahan di admin otomatis disimpan ke `localStorage`.
-- Untuk memperbarui file sistem yang dibaca publik, klik tombol **"Export products.js"** di sidebar admin.
-- Salin/gantikan file hasil unduhan ke folder `c:/xampp/htdocs/software-showcase/data/products.js`.
+### 7.3. Penyimpanan Katalog (T-31)
+- Setiap Simpan/Hapus di admin langsung dikirim ke server (`admin/save.php`) dan disimpan di `data/products.local.json`. Halaman publik membaca katalog lewat `data/catalog.php`, jadi perubahan langsung tampil tanpa menyalin file.
+- `data/products.local.json` tidak di-commit (di-ignore git) agar `git pull` tidak bentrok dengan perubahan admin di server. Bila file itu belum ada, katalog bawaan repo `data/products.js` yang dipakai.
+- **Reset ke Default** menghapus katalog admin dan kembali ke `data/products.js`.
+- **Export products.js** tetap tersedia sebagai cadangan / untuk memperbarui katalog bawaan di repo.
 
 ---
 
@@ -379,14 +380,14 @@ sequenceDiagram
     Client->>Showcase: Klik "Install / Berlangganan"
     Showcase->>Client: Tampilkan Step 1 (Pilihan Paket: Starter, Pro, Enterprise)
     Client->>Showcase: Pilih Paket & Isi Step 2 (Data Diri, No WA, Subdomain Toko)
-    Showcase->>Client: Tampilkan Step 3 (Tagihan & QRIS / Transfer Bank)
-    Client->>Showcase: Klik "Saya Sudah Bayar (Kirim ke LMD)"
-    Showcase->>LMD: POST /api/licenses/order (status: pending)
-    LMD-->>Showcase: Response Order #INV-XXXX (Subscription: SUB-XXXX)
-    Showcase->>Client: Step 4: Layar Menunggu Persetujuan Admin (Polling Otomatis)
-    LMD->>Admin: Tampil Notifikasi "Persetujuan Pembayaran Klien Baru"
-    Admin->>LMD: Klik "✓ Approve & Aktifkan Lisensi"
-    LMD->>LMD: Update Subscriptions & Licenses status = 'active'
+    Showcase->>Client: Tampilkan Step 3 (Tagihan + pilihan metode)
+    Client->>Showcase: Klik "Buat Tagihan & Bayar"
+    Showcase->>LMD: POST /api/licenses/order (status: pending + tagihan)
+    LMD-->>Showcase: SUB-XXXX + payment_url
+    Showcase->>Client: Tab baru: halaman bayar (simulator / gateway)
+    Client->>LMD: Bayar → gateway mengirim webhook bertanda tangan
+    LMD->>LMD: Tagihan lunas → Subscriptions & Licenses status = 'active'
+    Note over Admin,LMD: Cadangan: Admin klik Approve manual (pembayaran di luar gateway)
     Note over LMD,Showcase: Polling /api/licenses/order_status mendeteksi is_approved: true
     Showcase->>Client: Tampilan Berubah Otomatis: "🎉 Pembayaran Disetujui & Lisensi Aktif!"
     Client->>Client: Klik "🚀 Buka Aplikasi Saya Sekarang" (Auto-Provisioning)
@@ -398,11 +399,11 @@ sequenceDiagram
 2. **Langkah 2 (Data Diri & Domain):**
    - Input nama penanggung jawab, email bisnis, nomor WhatsApp, nama toko/usaha, dan pilihan subdomain instans (misal: `tokoberkah.pos.local`).
 3. **Langkah 3 (Pembayaran):**
-   - Rincian biaya paket + PPN 11% + opsi QRIS Instan atau Transfer Bank BCA.
+   - Rincian biaya paket + PPN 11% + pilihan metode. Tombol **Buat Tagihan & Bayar** membuat pesanan + tagihan di LMD dan membuka halaman bayar di tab baru.
 4. **Langkah 4 (Layar Menunggu & Live Polling):**
    - Browser klien melakukan polling berkala setiap 2.5 detik ke:
      `GET /api/licenses/order_status?subscription_no=SUB-XXXX`
-   - Seketika saat Admin menekan tombol Approve di Central SaaS LMD, layar HP klien **otomatis berubah** menampilkan tombol masuk ke aplikasi.
+   - Menampilkan status tagihan (belum dibayar / lunas / gagal / kedaluwarsa). Begitu pembayaran lunas (atau admin Approve manual), layar klien **otomatis berubah** menampilkan tombol masuk ke aplikasi.
 
 ---
 
@@ -462,8 +463,9 @@ Dengan terwujudnya dokumentasi dan struktur ini:
 
 ### 📌 Otomatisasi Verifikasi Pembayaran & Instant Approval Lisensi via n8n
 
-* **Status Saat Ini:**  
-  Menggunakan mekanisme **Persetujuan Manual (One-Click Approval)** melalui panel `Persetujuan Pembayaran & Aktivasi Domain Klien` di Dashboard Central SaaS LMD.
+* **Status Saat Ini (2026-10-31):**  
+  ✅ Pembayaran otomatis sudah berjalan dengan **simulator**: gateway mengirim webhook bertanda tangan langsung ke LMD (`POST /api/payments/webhook/{provider}`) dan LMD menyetujui pesanan otomatis — tanpa n8n. Persetujuan manual tetap ada sebagai cadangan.  
+  📋 Tersisa: adapter gateway sungguhan (Midtrans / Xendit) atau mutasi bank, dan n8n untuk notifikasi WhatsApp/email. Rancangan di bawah adalah rencana awal; arah terbaru ada di `LOG_EVALUASI.md` repo LMD.
 * **Target Peningkatan (Pending Task):**  
   Mengintegrasikan engine otomatisasi **n8n** agar proses verifikasi uang masuk di rekening dan penerbitan lisensi berjalan 100% otomatis 24/7 tanpa perlu persetujuan manual oleh admin.
 
