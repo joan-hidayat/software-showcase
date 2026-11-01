@@ -12,7 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedStatus: 'all',
     selectedCategory: 'all',
     sortBy: 'default',
-    activeModal: null
+    activeModal: null,
+    // Ketersediaan di LMD per lmdAppCode: true = punya paket publik, false = belum, undefined = sedang dicek
+    lmdAvailable: {}
   };
 
   // DOM Elements
@@ -41,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStats();
   renderProducts();
   setupEventListeners();
+  checkLmdAvailability();
 
   // Check notice from unauthorized direct access redirect
   (function handleRedirectNotice() {
@@ -64,13 +67,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
+  function lmdApiUrl() {
+    const currentHost = window.location.hostname || 'localhost';
+    const port = window.location.port ? ':' + window.location.port : ':8080';
+    return `${window.location.protocol}//${currentHost}${port}/License-Management-Dashboard/api/index.php`;
+  }
+
+  /**
+   * Standar Integrasi: produk hanya bisa dipesan bila aplikasinya terdaftar di LMD DAN punya paket publik.
+   * Dicek sekali saat halaman dibuka; produk lain tampil "Coming Soon".
+   */
+  async function checkLmdAvailability() {
+    const codes = [...new Set(products.map(p => p.lmdAppCode).filter(Boolean))];
+    await Promise.all(codes.map(async code => {
+      try {
+        state.lmdAvailable[code] = (await loadLmdPackages(lmdApiUrl(), code)).length > 0;
+      } catch (e) {
+        state.lmdAvailable[code] = false;
+      }
+    }));
+    initStats();
+    renderProducts();
+  }
+
+  function isOrderable(product) {
+    return !!product.lmdAppCode && state.lmdAvailable[product.lmdAppCode] === true;
+  }
+
+  function isCheckingLmd(product) {
+    return !!product.lmdAppCode && state.lmdAvailable[product.lmdAppCode] === undefined;
+  }
+
+  // Produk "released" yang belum bisa dipesan lewat LMD ditampilkan sebagai Coming Soon
+  function effectiveStatus(product) {
+    if (product.status === 'released' && !isOrderable(product) && !isCheckingLmd(product)) {
+      return 'coming_soon';
+    }
+    return product.status;
+  }
+
   /**
    * Initialize Quick Stats Counters
    */
   function initStats() {
     const total = products.length;
-    const released = products.filter(p => p.status === 'released').length;
-    const roadmap = products.filter(p => p.status === 'coming_soon').length;
+    const released = products.filter(p => effectiveStatus(p) === 'released').length;
+    const roadmap = products.filter(p => effectiveStatus(p) === 'coming_soon').length;
 
     let totalRating = 0;
     let countRating = 0;
@@ -95,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function getFilteredProducts() {
     return products.filter(product => {
       // Status filter
-      if (state.selectedStatus !== 'all' && product.status !== state.selectedStatus) {
+      if (state.selectedStatus !== 'all' && effectiveStatus(product) !== state.selectedStatus) {
         return false;
       }
       // Category filter
@@ -122,8 +164,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return parseFloat(b.rating) - parseFloat(a.rating);
       }
       // Default: Released first, then coming soon
-      if (a.status === 'released' && b.status !== 'released') return -1;
-      if (a.status !== 'released' && b.status === 'released') return 1;
+      if (effectiveStatus(a) === 'released' && effectiveStatus(b) !== 'released') return -1;
+      if (effectiveStatus(a) !== 'released' && effectiveStatus(b) === 'released') return 1;
       return 0;
     });
   }
@@ -154,8 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     productsGrid.innerHTML = filtered.map(product => {
-      const isReleased = product.status === 'released';
+      const status = effectiveStatus(product);
+      const isReleased = status === 'released';
       const badgeClass = isReleased ? 'badge-released' : 'badge-coming-soon';
+      // Produk rilis yang belum terdaftar/berpaket di LMD: label diganti Coming Soon
+      const badgeLabel = status === product.status ? product.statusLabel : 'Coming Soon';
       const statusIcon = isReleased ? '🟢' : '🚀';
 
       return `
@@ -165,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="card-image-overlay"></div>
             <div class="card-status-badge ${badgeClass}">
               <span class="badge-dot"></span>
-              ${product.statusLabel}
+              ${badgeLabel}
             </div>
             <div class="card-version-tag">${product.version.split(' ')[0]}</div>
           </div>
@@ -205,7 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 Demo
               </button>
 
-              ${product.lmdAppCode ? `
+              ${isCheckingLmd(product) ? `
+              <button class="btn-action btn-install btn-unavailable" id="btn-install-${product.id}" disabled>Memeriksa…</button>` : isOrderable(product) ? `
               <button class="btn-action btn-install" id="btn-install-${product.id}" data-id="${product.id}">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -213,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Berlangganan
               </button>` : `
               <button class="btn-action btn-install btn-unavailable" id="btn-install-${product.id}" data-id="${product.id}" disabled
-                title="Produk ini belum terdaftar di Central SaaS LMD">
+                title="Belum bisa dipesan: aplikasi belum terdaftar atau belum punya paket publik di Central SaaS LMD">
                 Segera hadir
               </button>`}
             </div>
@@ -230,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (btnSpec) btnSpec.addEventListener('click', () => openSpecModal(product));
       if (btnDemo) btnDemo.addEventListener('click', () => openDemoModal(product));
-      if (btnInstall) btnInstall.addEventListener('click', () => openInstallModal(product));
+      if (btnInstall && isOrderable(product)) btnInstall.addEventListener('click', () => openInstallModal(product));
     });
   }
 
@@ -417,18 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalContent = document.getElementById('install-modal-content');
     if (!modalContent) return;
     // Standar Integrasi v1: hanya produk yang terdaftar di LMD (lmdAppCode) yang bisa dipesan
-    if (!product.lmdAppCode) {
+    if (!isOrderable(product)) {
       showToast(`${product.name} segera hadir. Produk ini belum bisa dipesan karena belum terdaftar di Central SaaS.`);
       return;
     }
 
-    // Detect LMD host
-    const currentHost = window.location.hostname || 'localhost';
-    const port = window.location.port ? ':' + window.location.port : ':8080';
-    const lmdHost = `${window.location.protocol}//${currentHost}${port}`;
-
     // Paket, harga, dan kuota diambil dari LMD (sumber tunggal), bukan ditulis di Showcase
-    const lmdApi = `${lmdHost}/License-Management-Dashboard/api/index.php`;
+    const lmdApi = lmdApiUrl();
     const appCode = product.lmdAppCode;
     let selectedPackage = null;
     const paymentState = { method: 'QRIS' };
