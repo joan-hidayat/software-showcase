@@ -48,7 +48,7 @@ const PRODUCTS_DATA = [
     },
     "demo": {
       "available": true,
-      "url": "http://192.168.0.116:8080/mini-pos/",
+      "url": "/mini-pos/",
       "title": "Live Interactive Demo - Mini POS Express",
       "type": "live"
     },
@@ -118,7 +118,7 @@ const PRODUCTS_DATA = [
     },
     "demo": {
       "available": true,
-      "url": "http://localhost:8080/apotek",
+      "url": "/License-Management-Dashboard/client_demo/apotek.html",
       "title": "Live Interactive Demo - Apotek POS",
       "type": "live"
     },
@@ -187,7 +187,7 @@ const PRODUCTS_DATA = [
     },
     "demo": {
       "available": true,
-      "url": "http://localhost:8080/License-Management-Dashboard",
+      "url": "/License-Management-Dashboard/",
       "title": "Live Dashboard - License Management System",
       "type": "live"
     },

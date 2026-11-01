@@ -67,10 +67,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
+  // LMD berada di server yang sama dengan Showcase; host & port mengikuti alamat yang dibuka (localhost, IP LAN, domain)
   function lmdApiUrl() {
-    const currentHost = window.location.hostname || 'localhost';
-    const port = window.location.port ? ':' + window.location.port : ':8080';
-    return `${window.location.protocol}//${currentHost}${port}/License-Management-Dashboard/api/index.php`;
+    return `${window.location.origin}/License-Management-Dashboard/api/index.php`;
+  }
+
+  /**
+   * URL di katalog yang menunjuk ke server lokal (path "/…", localhost, 127.0.0.1, atau IP LAN 192.168/10/172.16-31)
+   * diarahkan ke alamat yang sedang dibuka, supaya tetap jalan dari HP di Wi-Fi yang sama. Null bila bukan server lokal.
+   */
+  function sameServerUrl(url) {
+    if (!url) return null;
+    if (url.startsWith('/')) return window.location.origin + url;
+    try {
+      const u = new URL(url);
+      const local = /^(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/.test(u.hostname);
+      return local ? window.location.origin + u.pathname + u.search + u.hash : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   /**
@@ -529,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="form-group-modal" style="margin-top: 10px;">
             <label>Subdomain yang Diinginkan</label>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <input type="text" id="ob-subdomain" placeholder="misal: tokoberkah" pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]" title="3–40 karakter: huruf kecil, angka, tanda minus (tidak di awal/akhir)" style="flex: 1;" required>
+              <input type="text" id="ob-subdomain" placeholder="misal: tokoberkah" pattern="[a-z0-9][a-z0-9\\-]{1,38}[a-z0-9]" title="3–40 karakter: huruf kecil, angka, tanda minus (tidak di awal/akhir)" style="flex: 1;" required>
               <span style="font-size: 13px; color: #38bdf8; font-family: var(--font-mono);">.pos.local</span>
             </div>
             <small style="color: #64748b; font-size: 11px;">Domain instans ini akan langsung aktif begitu pembayaran disetujui</small>
@@ -918,14 +933,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     demoTitle.textContent = product.demo.title;
 
-    if (product.demo.type === 'live' && product.demo.url.startsWith('http://localhost')) {
-      demoUrlText.textContent = product.demo.url;
-      btnOpenExternal.href = product.demo.url;
+    const liveUrl = product.demo.type === 'live' ? sameServerUrl(product.demo.url) : null;
+    if (liveUrl) {
+      demoUrlText.textContent = liveUrl;
+      btnOpenExternal.href = liveUrl;
       btnOpenExternal.style.display = 'inline-flex';
 
       demoBody.innerHTML = `
         <div class="demo-viewport-container">
-          <iframe class="demo-iframe" src="${product.demo.url}" title="${product.name} Live Demo"></iframe>
+          <iframe class="demo-iframe" src="${liveUrl}" title="${product.name} Live Demo"></iframe>
         </div>
       `;
     } else {
