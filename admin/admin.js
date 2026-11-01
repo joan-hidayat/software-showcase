@@ -301,8 +301,9 @@ const admin = {
     const editId = document.getElementById('editProductId').value;
     const isEdit = editId !== '';
 
-    // ID: huruf kecil otomatis (server menolak huruf besar)
-    const id = isEdit ? editId : document.getElementById('prodId').value.trim().toLowerCase();
+    // ID (slug): huruf kecil, spasi → "-", tanda minus ganda dirapikan (server hanya menerima a-z 0-9 -)
+    const id = isEdit ? editId : document.getElementById('prodId').value.trim().toLowerCase()
+      .replace(/\s*-\s*|\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     if (!id) {
       alert('ID produk wajib diisi!');
       return;
