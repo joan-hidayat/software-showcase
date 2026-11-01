@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const demoModal = document.getElementById('demo-modal');
   const contactModal = document.getElementById('contact-modal');
   const btnOpenContact = document.getElementById('btn-open-contact');
+  const orderModal = document.getElementById('order-modal');
+  const btnOpenOrder = document.getElementById('btn-open-order');
   const toastContainer = document.getElementById('toast-container');
 
   // Initialize
@@ -44,6 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
   setupEventListeners();
   checkLmdAvailability();
+
+  // Kembali dari halaman bayar LMD: ?order=SUB-…&t=<token> → langsung tampilkan Cek Pesanan untuk pesanan itu
+  (function handleOrderReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const order = params.get('order');
+    if (!order) return;
+    const token = params.get('t') || '';
+    window.history.replaceState({}, document.title, window.location.pathname);
+    openOrderLookup(order);
+    if (token) lookupOrder({ subscription_no: order, token });
+  })();
 
   // Check notice from unauthorized direct access redirect
   (function handleRedirectNotice() {
@@ -690,6 +703,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <a id="btn-enter-app" href="#" target="_blank" class="btn-action btn-install" style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 32px; font-size: 15px; font-weight: 800; text-decoration: none;">
             🚀 Buka & Masuk ke Aplikasi Saya Sekarang ↗
           </a>
+          <div style="margin-top: 14px; font-size: 12px; color: #94a3b8; line-height: 1.7;">
+            <a id="btn-receipt" href="#" target="_blank" rel="noopener" class="hidden" style="color: #34d399; font-weight: 700; text-decoration: none;">🧾 Lihat bukti pembayaran</a><br>
+            Simpan nomor pesanan <strong id="final-sub-no" style="color: #38bdf8; font-family: var(--font-mono);">-</strong>.
+            Status, license key, dan bukti pembayaran bisa dilihat lagi lewat tombol <strong>🔎 Cek Pesanan</strong> di atas halaman.
+          </div>
         </div>
       </div>
     `;
@@ -885,6 +903,13 @@ document.addEventListener('DOMContentLoaded', () => {
               const appUrl = statusJson.data.app_url;
               const enterBtn = document.getElementById('btn-enter-app');
               document.getElementById('final-lic-key').textContent = statusJson.data.license_key;
+              document.getElementById('final-sub-no').textContent = order.subscription_no;
+              const receiptUrl = statusJson.data.payment && statusJson.data.payment.receipt_url;
+              if (receiptUrl) {
+                const receiptLink = document.getElementById('btn-receipt');
+                receiptLink.href = sameServerUrl(receiptUrl) || receiptUrl;
+                receiptLink.classList.remove('hidden');
+              }
               const credUserEl = document.getElementById('final-cred-user');
               if (credUserEl) credUserEl.textContent = order.customer_email;
               if (appUrl) {
@@ -932,6 +957,70 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(installModal);
   }
 
+
+  /**
+   * Cek Pesanan: status, license key, link aplikasi, dan bukti pembayaran (POST /licenses/order_lookup)
+   */
+  function openOrderLookup(subscriptionNo) {
+    document.getElementById('order-lookup-result').innerHTML = '';
+    document.getElementById('order-lookup-form').classList.remove('hidden');
+    if (subscriptionNo) document.getElementById('lookup-sub-no').value = subscriptionNo;
+    openModal(orderModal);
+  }
+
+  async function lookupOrder(payload) {
+    const box = document.getElementById('order-lookup-result');
+    box.innerHTML = '<p class="order-lookup-msg">Memeriksa pesanan…</p>';
+    try {
+      const resp = await fetch(`${lmdApiUrl()}/licenses/order_lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await resp.json();
+      if (!json.success) throw new Error(resp.status === 429 ? 'Terlalu banyak percobaan. Coba lagi sebentar.' : json.message);
+      document.getElementById('order-lookup-form').classList.add('hidden');
+      box.innerHTML = renderOrderDetail(json.data);
+      const again = document.getElementById('btn-lookup-again');
+      if (again) again.addEventListener('click', () => openOrderLookup());
+    } catch (e) {
+      box.innerHTML = `<p class="order-lookup-msg error">${escapeHtml(e.message || 'Gagal menghubungi Central SaaS.')}</p>`;
+    }
+  }
+
+  function renderOrderDetail(o) {
+    const statusMap = {
+      active: ['Aktif', 'ok'], pending: ['Menunggu pembayaran', 'wait'], cancelled: ['Dibatalkan', 'bad'],
+      expired: ['Kedaluwarsa', 'bad'], suspended: ['Ditangguhkan', 'bad']
+    };
+    const [statusLabel, statusClass] = statusMap[o.status] || [o.status, 'wait'];
+    const rp = n => `Rp ${Number(n).toLocaleString('id-ID')}`;
+    const tgl = d => d ? new Date(String(d).replace(' ', 'T')).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+    const payLabels = { pending: 'Belum dibayar', paid: 'Lunas', failed: 'Gagal', expired: 'Kedaluwarsa', cancelled: 'Dibatalkan' };
+    const appUrl = o.app_url ? (sameServerUrl(o.app_url) || o.app_url) : null;
+    const payments = (o.payments || []).map(p => `
+      <div class="order-pay-row">
+        <div><code>${escapeHtml(p.payment_no)}</code><div class="muted">${escapeHtml(payLabels[p.status] || p.status)} · ${rp(p.amount)}${p.paid_at ? ' · ' + tgl(p.paid_at) : ''}</div></div>
+        ${p.receipt_url ? `<a href="${escapeHtml(sameServerUrl(p.receipt_url) || p.receipt_url)}" target="_blank" rel="noopener">🧾 Bukti bayar</a>`
+          : p.payment_url ? `<a href="${escapeHtml(sameServerUrl(p.payment_url) || p.payment_url)}" target="_blank" rel="noopener">💳 Bayar</a>` : ''}
+      </div>`).join('');
+    return `
+      <div class="order-detail">
+        <div class="order-detail-head">
+          <div><code>${escapeHtml(o.subscription_no)}</code><div class="muted">${escapeHtml(o.app_name)} — ${escapeHtml(o.package_name)}</div></div>
+          <span class="order-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="order-kv"><span>Pemesan</span><span>${escapeHtml(o.customer_name)} (${escapeHtml(o.customer_email)})</span></div>
+        <div class="order-kv"><span>Toko</span><span>${escapeHtml(o.store_name || '-')} · <code>${escapeHtml(o.instance_domain || '-')}</code></span></div>
+        <div class="order-kv"><span>Total</span><span>${rp(o.total_price)}</span></div>
+        ${o.start_date ? `<div class="order-kv"><span>Masa aktif</span><span>${tgl(o.start_date)} – ${tgl(o.end_date)}</span></div>` : ''}
+        ${o.license_key ? `<div class="order-kv"><span>License key</span><span><code>${escapeHtml(o.license_key)}</code></span></div>` : ''}
+        ${appUrl ? `<a class="btn-action btn-install order-open-app" href="${escapeHtml(appUrl)}" target="_blank" rel="noopener">🚀 Buka Aplikasi ↗</a>` : ''}
+        <div class="order-pay-title">Pembayaran</div>
+        ${payments || '<p class="muted">Belum ada tagihan.</p>'}
+        <button type="button" id="btn-lookup-again" class="btn-lookup-again">Cek pesanan lain</button>
+      </div>`;
+  }
 
   /**
    * Open Demo Modal
@@ -1029,6 +1118,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Open Contact Modal from Navbar Button
     if (btnOpenContact) {
       btnOpenContact.addEventListener('click', () => openModal(contactModal));
+    }
+    if (btnOpenOrder) {
+      btnOpenOrder.addEventListener('click', () => openOrderLookup());
+    }
+    const lookupForm = document.getElementById('order-lookup-form');
+    if (lookupForm) {
+      lookupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        lookupOrder({
+          subscription_no: document.getElementById('lookup-sub-no').value.trim().toUpperCase(),
+          email: document.getElementById('lookup-email').value.trim()
+        });
+      });
     }
 
     // Search Input
