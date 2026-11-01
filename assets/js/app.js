@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="form-group-modal" style="margin-top: 10px;">
             <label>Subdomain yang Diinginkan</label>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <input type="text" id="ob-subdomain" placeholder="misal: tokoberkah" pattern="[a-z0-9][a-z0-9\\-]{1,38}[a-z0-9]" title="3–40 karakter: huruf kecil, angka, tanda minus (tidak di awal/akhir)" style="flex: 1;" required>
+              <input type="text" id="ob-subdomain" placeholder="misal: tokoberkah" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="url" pattern="[a-z0-9][a-z0-9\\-]{1,38}[a-z0-9]" title="3–40 karakter: huruf kecil, angka, tanda minus (tidak di awal/akhir)" style="flex: 1;" required>
               <span style="font-size: 13px; color: #38bdf8; font-family: var(--font-mono);">.pos.local</span>
             </div>
             <small style="color: #64748b; font-size: 11px;">Domain instans ini akan langsung aktif begitu pembayaran disetujui</small>
@@ -735,6 +735,13 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('wizard-step-2').classList.remove('hidden');
       document.getElementById('step-tab-1').classList.remove('active');
       document.getElementById('step-tab-2').classList.add('active');
+    });
+
+    // Subdomain dirapikan saat diketik: keyboard HP sering membesarkan huruf pertama / menambah spasi
+    const subdomainInput = document.getElementById('ob-subdomain');
+    subdomainInput.addEventListener('input', () => {
+      const clean = subdomainInput.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      if (clean !== subdomainInput.value) subdomainInput.value = clean;
     });
 
     // Step 2 -> 1
