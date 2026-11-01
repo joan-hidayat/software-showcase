@@ -3,10 +3,63 @@
 
 const admin = {
   products: [],
+  // Status di Central SaaS LMD per lmdAppCode: { packages: n } atau { error } (T-36)
+  lmd: {},
 
   init() {
     this.checkAuth();
     this.bindEvents();
+    this.loadLmdStatus();
+  },
+
+  lmdApiUrl() {
+    return `${window.location.protocol}//${window.location.host}/License-Management-Dashboard/api/index.php`;
+  },
+
+  // Sama dengan halaman publik: produk bisa dipesan hanya bila aplikasinya punya paket publik di LMD
+  async loadLmdStatus() {
+    const codes = [...new Set(this.products.map(p => p.lmdAppCode).filter(Boolean))];
+    await Promise.all(codes.map(async code => {
+      try {
+        const resp = await fetch(`${this.lmdApiUrl()}/packages?app_code=${encodeURIComponent(code)}`);
+        const json = await resp.json();
+        this.lmd[code] = json.success ? { packages: json.data.length } : { error: json.message || 'gagal' };
+      } catch (e) {
+        this.lmd[code] = { error: 'LMD tidak terjangkau' };
+      }
+    }));
+    this.renderDashboard();
+    this.renderProductsTable();
+  },
+
+  isOrderable(p) {
+    return !!p.lmdAppCode && (this.lmd[p.lmdAppCode] || {}).packages > 0;
+  },
+
+  // Status yang dilihat pengunjung: produk "released" yang belum bisa dipesan tampil Coming Soon
+  effectiveStatus(p) {
+    const checking = p.lmdAppCode && !this.lmd[p.lmdAppCode];
+    return p.status === 'released' && !checking && !this.isOrderable(p) ? 'coming_soon' : p.status;
+  },
+
+  statusCell(p) {
+    const status = this.effectiveStatus(p);
+    const label = status === p.status ? (p.statusLabel || (p.status === 'released' ? 'LIVE RELEASE' : 'COMING SOON')) : 'Coming Soon';
+    const info = p.lmdAppCode ? this.lmd[p.lmdAppCode] : null;
+    let lmdLine;
+    if (!p.lmdAppCode) {
+      lmdLine = '<span style="color:#64748b;">— belum dihubungkan ke LMD</span>';
+    } else if (!info) {
+      lmdLine = `<span style="color:#64748b;">${p.lmdAppCode} · memeriksa…</span>`;
+    } else if (info.error) {
+      lmdLine = `<span style="color:#f87171;">⚠ ${p.lmdAppCode}: ${info.error}</span>`;
+    } else if (info.packages > 0) {
+      lmdLine = `<span style="color:#34d399;">🔗 ${p.lmdAppCode} · ${info.packages} paket publik</span>`;
+    } else {
+      lmdLine = `<span style="color:#fbbf24;">⚠ ${p.lmdAppCode}: belum terdaftar / belum ada paket publik di LMD</span>`;
+    }
+    const note = status !== p.status ? `<span style="display:block; font-size:11px; color:#64748b;">Di katalog: ${p.statusLabel || 'Live Release'}</span>` : '';
+    return `<span class="status-badge ${status}">${label}</span>${note}<span style="display:block; font-size:11px; margin-top:4px;">${lmdLine}</span>`;
   },
 
   // Login diperiksa server (admin/app.php hanya dikirim ke sesi yang sudah login, T-07)
@@ -97,8 +150,8 @@ const admin = {
 
   renderDashboard() {
     const total = this.products.length;
-    const live = this.products.filter(p => p.status === 'released').length;
-    const coming = this.products.filter(p => p.status === 'coming_soon').length;
+    const live = this.products.filter(p => this.effectiveStatus(p) === 'released').length;
+    const coming = this.products.filter(p => this.effectiveStatus(p) === 'coming_soon').length;
     const avgRating = total > 0 ? (this.products.reduce((acc, p) => acc + (parseFloat(p.rating) || 0), 0) / total).toFixed(1) : '0.0';
 
     document.getElementById('statTotal').textContent = total;
@@ -124,7 +177,7 @@ const admin = {
           </div>
         </td>
         <td><span class="badge" style="background:#1e293b; color:#cbd5e1; padding:3px 8px; border-radius:4px; font-size:11px;">${p.category}</span></td>
-        <td><span class="status-badge ${p.status}">${p.statusLabel || (p.status === 'released' ? 'LIVE RELEASE' : 'COMING SOON')}</span></td>
+        <td>${this.statusCell(p)}</td>
         <td><code>${p.version || '-'}</code></td>
         <td>⭐ ${p.rating || '0.0'}</td>
         <td>
@@ -148,7 +201,7 @@ const admin = {
 
     const filtered = this.products.filter(p => {
       const matchQuery = !query || p.name.toLowerCase().includes(query) || (p.tagline && p.tagline.toLowerCase().includes(query));
-      const matchStatus = statusFilter === 'all' || p.status === statusFilter;
+      const matchStatus = statusFilter === 'all' || this.effectiveStatus(p) === statusFilter;
       const matchCat = catFilter === 'all' || p.category === catFilter;
       return matchQuery && matchStatus && matchCat;
     });
@@ -170,7 +223,7 @@ const admin = {
           <span style="display:block; font-size:11px; color:#94a3b8; max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.tagline || ''}</span>
         </td>
         <td><span style="font-size:12px;">${p.category}</span></td>
-        <td><span class="status-badge ${p.status}">${p.statusLabel || (p.status === 'released' ? 'LIVE RELEASE' : 'COMING SOON')}</span></td>
+        <td>${this.statusCell(p)}</td>
         <td>
           <div style="font-size:12px;"><strong>${p.version || '-'}</strong></div>
           <div style="font-size:11px; color:#64748b;">${p.releaseDate || '-'}</div>
@@ -320,6 +373,7 @@ const admin = {
     }
 
     if (!await this.saveData()) return;
+    this.loadLmdStatus();
     this.resetForm();
     this.navigate('products');
   },
