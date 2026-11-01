@@ -1601,3 +1601,6 @@ button, input, select {
   transform: none;
   cursor: not-allowed;
 }
+
+/* Modul yang tidak termasuk paket: tetap tampil sebagai pembanding, dicoret & diredupkan */
+.pkg-features li.pkg-feature-off { color: #64748b; text-decoration: line-through; opacity: 0.7; }
