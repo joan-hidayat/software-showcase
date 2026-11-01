@@ -507,29 +507,29 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="form-group-modal">
               <label>Nama Lengkap Penanggung Jawab</label>
-              <input type="text" id="ob-cust-name" placeholder="misal: Budi Santoso" value="Budi Santoso" required>
+              <input type="text" id="ob-cust-name" placeholder="misal: Budi Santoso" autocomplete="name" required>
             </div>
             <div class="form-group-modal">
               <label>Email Bisnis</label>
-              <input type="email" id="ob-cust-email" placeholder="owner@tokoberkah.com" value="budi@apoteksehat.com" required>
+              <input type="email" id="ob-cust-email" placeholder="misal: owner@tokoberkah.com" autocomplete="email" required>
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
             <div class="form-group-modal">
               <label>Nomor WhatsApp / Telepon</label>
-              <input type="tel" id="ob-cust-phone" placeholder="08123456789" value="08123456789" required>
+              <input type="tel" id="ob-cust-phone" placeholder="misal: 08123456789" autocomplete="tel" required>
             </div>
             <div class="form-group-modal">
               <label>Nama Toko / Apotek / Usaha</label>
-              <input type="text" id="ob-store-name" placeholder="misal: Apotek Sehat Sentosa" value="Apotek Sehat Sentosa" required>
+              <input type="text" id="ob-store-name" placeholder="misal: Toko Berkah Jaya" autocomplete="organization" required>
             </div>
           </div>
 
           <div class="form-group-modal" style="margin-top: 10px;">
             <label>Subdomain yang Diinginkan</label>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <input type="text" id="ob-subdomain" placeholder="apoteksehat" value="apoteksehat" style="flex: 1;" required>
+              <input type="text" id="ob-subdomain" placeholder="misal: tokoberkah" pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]" title="3–40 karakter: huruf kecil, angka, tanda minus (tidak di awal/akhir)" style="flex: 1;" required>
               <span style="font-size: 13px; color: #38bdf8; font-family: var(--font-mono);">.pos.local</span>
             </div>
             <small style="color: #64748b; font-size: 11px;">Domain instans ini akan langsung aktif begitu pembayaran disetujui</small>
