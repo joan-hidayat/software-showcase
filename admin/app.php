@@ -308,7 +308,6 @@ header('Cache-Control: no-store');
                   <label>Kode Aplikasi di LMD (lmdAppCode)</label>
                   <input type="text" id="lmdAppCode" placeholder="mis. MINIPOS — kosongkan jika belum terdaftar">
                   <small style="color:#64748b; font-size:11px;">Harus sama dengan Application Code di LMD. Produk baru bisa dipesan bila aplikasi itu punya paket publik di LMD; selain itu tampil Coming Soon.</small>
-                  <small style="color:#94a3b8;font-size:11px;">Harus sama dengan kode aplikasi di Central SaaS LMD. Tanpa kode ini tombol berlangganan tampil "Segera hadir".</small>
                 </div>
                 <div class="form-group">
                   <label>URL Live Demo</label>
@@ -364,6 +363,6 @@ header('Cache-Control: no-store');
 
   <!-- LOAD SCRIPTS -->
   <script src="../data/catalog.php"></script>
-  <script src="admin.js?v=20261101_t37"></script>
+  <script src="admin.js?v=20261101_t37b"></script>
 </body>
 </html>
