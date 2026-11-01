@@ -200,6 +200,12 @@ c:/xampp/htdocs/software-showcase/
 4. **Bagian 3 (Demo & Install):** Tentukan URL Live Demo, tipe paket unduhan (ZIP/Git), ukuran file, dan perintah terminal CLI cepat.
 5. Klik **Simpan Produk**.
 
+### 7.2a. Gambar Thumbnail (T-37)
+- Klik **Upload gambar** di kolom *Gambar Thumbnail* (JPG/PNG/WebP, maks 2 MB, maks 4000 px per sisi; disarankan rasio 3:2, mis. 900×600). Pratinjau langsung tampil dan path `assets/images/uploads/thumb_….ext` terisi otomatis; klik **Simpan Produk**.
+- File disimpan di server Showcase (`assets/images/uploads/`, tidak di-commit). Jenis file dicek dari isinya, nama file dibuat acak, dan folder upload menolak menjalankan skrip.
+- Path manual (`assets/images/…`) atau URL online tetap bisa dipakai.
+- ID produk otomatis diubah ke huruf kecil; rating boleh memakai koma (4,4 → 4.4).
+
 ### 7.3. Penyimpanan Katalog (T-31)
 - Setiap Simpan/Hapus di admin langsung dikirim ke server (`admin/save.php`) dan disimpan di `data/products.local.json`. Halaman publik membaca katalog lewat `data/catalog.php`, jadi perubahan langsung tampil tanpa menyalin file.
 - `data/products.local.json` tidak di-commit (di-ignore git) agar `git pull` tidak bentrok dengan perubahan admin di server. Bila file itu belum ada, katalog bawaan repo `data/products.js` yang dipakai.
