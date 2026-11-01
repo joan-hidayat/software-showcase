@@ -435,7 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
       locations: parseInt(p.max_instances || 1, 10),
       billingCycle: p.billing_cycle,
       futureModules: Number(p.future_module_access) === 1,
-      modules: (p.modules || []).map(m => m.name)
+      modules: (p.modules || []).map(m => m.name),
+      // Semua modul aplikasi, urut sesuai LMD: yang termasuk paket aktif, sisanya dicoret (pembanding antarpaket)
+      allModules: [
+        ...(p.modules || []).map(m => ({ name: m.name, sort: Number(m.sort_order) || 0, included: true })),
+        ...(p.excluded_modules || []).map(m => ({ name: m.name, sort: Number(m.sort_order) || 0, included: false }))
+      ].sort((a, b) => a.sort - b.sort)
     }));
   }
 
@@ -454,8 +459,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderPackageCard(pkg) {
-    const shownModules = pkg.modules.slice(0, 4).map(m => `<li>✓ ${escapeHtml(m)}</li>`).join('');
-    const moreModules = pkg.modules.length > 4 ? `<li>✓ +${pkg.modules.length - 4} modul lainnya</li>` : '';
+    const moduleItems = pkg.allModules.map(m => m.included
+      ? `<li>✓ ${escapeHtml(m.name)}</li>`
+      : `<li class="pkg-feature-off" title="Tidak termasuk paket ini">✕ ${escapeHtml(m.name)}</li>`).join('');
     const futureModules = pkg.futureModules ? '<li>✓ Modul baru otomatis didapat</li>' : '';
     return `
           <div class="pkg-card" data-code="${escapeHtml(pkg.code)}">
@@ -465,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <ul class="pkg-features">
               <li>✓ Maksimal ${pkg.users} User</li>
               <li>✓ ${pkg.locations > 1 ? `Hingga ${pkg.locations} lokasi / cabang` : '1 lokasi toko'}</li>
-              ${shownModules}${moreModules}${futureModules}
+              ${moduleItems}${futureModules}
             </ul>
             <button type="button" class="btn-select-pkg">Pilih Paket</button>
           </div>`;
