@@ -233,8 +233,20 @@ header('Cache-Control: no-store');
               </div>
 
               <div class="form-group">
-                <label>URL Gambar Thumbnail</label>
-                <input type="text" id="prodThumbnail" placeholder="assets/images/thumb_...jpg atau URL online" required>
+                <label>Gambar Thumbnail</label>
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <img id="thumbPreview" alt="" style="width:120px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #1e293b; background:#0f172a; flex-shrink:0;">
+                  <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; gap:8px;">
+                      <input type="text" id="prodThumbnail" placeholder="Upload gambar, atau isi path assets/images/… / URL online" required style="flex:1;">
+                      <label class="btn btn-secondary btn-sm" style="cursor:pointer; white-space:nowrap; margin:0;">
+                        Upload gambar
+                        <input type="file" id="thumbFile" accept="image/jpeg,image/png,image/webp" hidden>
+                      </label>
+                    </div>
+                    <small id="thumbHint" style="color:#64748b; font-size:11px;">JPG/PNG/WebP, maks 2 MB. Disarankan rasio 3:2 (mis. 900×600). File disimpan di server Showcase.</small>
+                  </div>
+                </div>
               </div>
 
               <div class="form-group">
@@ -352,6 +364,6 @@ header('Cache-Control: no-store');
 
   <!-- LOAD SCRIPTS -->
   <script src="../data/catalog.php"></script>
-  <script src="admin.js?v=20261101_t36"></script>
+  <script src="admin.js?v=20261101_t37"></script>
 </body>
 </html>

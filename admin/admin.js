@@ -258,6 +258,7 @@ const admin = {
     document.getElementById('prodReleaseDate').value = p.releaseDate || '';
     document.getElementById('prodRating').value = p.rating || 5.0;
     document.getElementById('prodThumbnail').value = p.thumbnail || '';
+    this.updateThumbPreview();
     document.getElementById('prodTagline').value = p.tagline || '';
     document.getElementById('prodDescription').value = p.description || '';
 
@@ -300,7 +301,8 @@ const admin = {
     const editId = document.getElementById('editProductId').value;
     const isEdit = editId !== '';
 
-    const id = isEdit ? editId : document.getElementById('prodId').value.trim();
+    // ID: huruf kecil otomatis (server menolak huruf besar)
+    const id = isEdit ? editId : document.getElementById('prodId').value.trim().toLowerCase();
     if (!id) {
       alert('ID produk wajib diisi!');
       return;
@@ -324,7 +326,8 @@ const admin = {
       status: statusVal,
       statusLabel: statusVal === 'released' ? 'LIVE RELEASE' : 'COMING SOON',
       badgeColor: statusVal === 'released' ? '#10b981' : '#06b6d4',
-      rating: parseFloat(document.getElementById('prodRating').value) || 5.0,
+      // Terima koma desimal (4,4 → 4.4)
+      rating: parseFloat(String(document.getElementById('prodRating').value).replace(',', '.')) || 5.0,
       reviewsCount: 15,
       thumbnail: document.getElementById('prodThumbnail').value.trim(),
       lmdAppCode: document.getElementById('lmdAppCode').value.trim().toUpperCase() || undefined,
@@ -378,8 +381,41 @@ const admin = {
     this.navigate('products');
   },
 
+  // Pratinjau thumbnail: path relatif dari root Showcase (admin berada di /admin/)
+  updateThumbPreview() {
+    const value = document.getElementById('prodThumbnail').value.trim();
+    const img = document.getElementById('thumbPreview');
+    img.src = !value ? '' : (/^(https?:)?\/\//i.test(value) ? value : '../' + value.replace(/^\/+/, ''));
+  },
+
+  async uploadThumbnail(file) {
+    const hint = document.getElementById('thumbHint');
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      hint.textContent = '⚠ Ukuran gambar maksimal 2 MB.';
+      return;
+    }
+    hint.textContent = 'Mengunggah…';
+    const form = new FormData();
+    form.append('image', file);
+    try {
+      const resp = await fetch('upload.php', { method: 'POST', headers: { 'X-CSRF-Token': document.body.dataset.csrf }, body: form });
+      const json = await resp.json().catch(() => ({ ok: false, message: 'Respons server tidak valid.' }));
+      if (resp.status === 401) window.location.href = 'index.php';
+      if (!json.ok) throw new Error(json.message);
+      document.getElementById('prodThumbnail').value = json.path;
+      this.updateThumbPreview();
+      hint.textContent = `✅ Terunggah (${json.width}×${json.height}). Klik Simpan Produk untuk menyimpan.`;
+    } catch (e) {
+      hint.textContent = '⚠ ' + e.message;
+    } finally {
+      document.getElementById('thumbFile').value = '';
+    }
+  },
+
   resetForm() {
     document.getElementById('productForm').reset();
+    this.updateThumbPreview();
     document.getElementById('editProductId').value = '';
     document.getElementById('prodId').disabled = false;
   },
@@ -439,6 +475,8 @@ const admin = {
 
     // Form submit
     document.getElementById('productForm').addEventListener('submit', (e) => this.saveProductForm(e));
+    document.getElementById('thumbFile').addEventListener('change', (e) => this.uploadThumbnail(e.target.files[0]));
+    document.getElementById('prodThumbnail').addEventListener('input', () => this.updateThumbPreview());
 
     // Export & Reset
     document.getElementById('btnExportData').addEventListener('click', () => this.exportProductsJs());

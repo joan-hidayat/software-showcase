@@ -94,3 +94,7 @@ $RECYCLE.BIN/
 # Katalog hasil Admin Showcase (T-31), disimpan di server, bukan di repo
 data/products.local.json
 data/products.local.json.tmp
+
+# Gambar hasil upload Admin Showcase (T-37), disimpan di server, bukan di repo
+assets/images/uploads/*
+!assets/images/uploads/.htaccess
